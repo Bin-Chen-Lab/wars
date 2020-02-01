@@ -1498,11 +1498,11 @@ visualize_drug_hits <- function(){
   lincs_drug_prediction = read.csv(paste(outputFolder, "/all__lincs_score.csv", sep=""),stringsAsFactors = F)
   dz_gene_ids = read.csv(paste(outputFolder, "/dz_sig_used.csv", sep=""),stringsAsFactors = F)
   
-  dz_signature  = read.csv(paste0(outputFolder,'dz_signature.csv'),stringsAsFactors = F)
-  dz_signature = dz_signature %>% filter(gene %in% dz_gene_ids$gene)
+  dz_sig  = read.csv(paste0(outputFolder,'dz_sig_used.csv'),stringsAsFactors = F)
+  dz_sig$gene = dz_sig$Symbol
+  dz_sig$log2FoldChange = dz_sig$value
   
-  dz_sig = dz_signature %>% select(gene,log2FoldChange)
-  
+  dz_sig = dz_sig[, c("gene", "log2FoldChange")]
   #drugs to visualize
   sRGES = read.csv(paste(outputFolder, "/sRGES.csv", sep=""))
   #choose top common drugs
