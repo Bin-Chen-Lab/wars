@@ -162,3 +162,5 @@ enrich.time
 
 visualize_dz_sig_pathway(dz_signature)
 
+visualize_drug_hits()
+
