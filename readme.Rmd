@@ -1,0 +1,21 @@
+#aimed to repurpose drugs that may help patients infected by coronavirus. Now only SARS-Cov and MERS-Cov data available.
+
+#scientific hypothesis:
+#we first create signatures modeling the change of gene expression across multiple time points and then predict drugs that may reverse teh expression change
+#we can also create a signature by comparing infected samples and non-infected samples.
+
+#create a work folder
+#create data folder and code folder
+#download data from Chen lab server, and unzip to data folder
+#clone code and unzip to the code folder
+
+#how to run code:
+
+#choose disease name (more specifically the comparison of name, I use GSE number + comparison method), here we use GSE17400_SARS_48_vs_12
+#method_id = 3: by default we use SAM (3), but if we could not find enough signature genes, use rankProd (2)
+#case_reg: can be keywords (or patten) or a list of GSM ids.
+
+#create_dz_signature_from_GEO.R: create disase signature
+#predict_drugs_cmap.R: predict drugs using cmap data
+#predict_drugs_lincs:R: predict drugs using lincs data
+
