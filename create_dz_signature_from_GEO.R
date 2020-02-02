@@ -303,6 +303,7 @@ dz_sig <- rbind(genes.sig.up,genes.sig.down)
 colnames(dz_sig) <- c("GeneID","Symbol","value","q.value","p.value","up_down")
 write.table(dz_sig,dz_sig.file,sep="\t",quote=F,row.names=F,col.names=T)
 
+
 #################################
 #visualize disease signatures
 annotation <- data.frame(type = c(rep("case", length(case)), rep("control", length(control))))
@@ -316,10 +317,11 @@ anno_colors <- list(type = Var1)
 
 my.cols <- greenred(100) 
 comparison_frame_subset <- comparison_frame[rownames(comparison_frame) %in% dz_sig$GeneID, ]
+if (nrow(comparison_frame_subset) > 2){
 pheatmap(t(scale(t(comparison_frame_subset))), col = my.cols, annotation = annotation,  annotation_colors = anno_colors,
          show_colnames=F, legend=T, show_rownames=F, filename=paste(disease, "/dz_sig_validation.pdf", sep="")
 )
-
+}
 dz_expr = comparison_frame
 save(dz_expr,annotation, my.cols, anno_colors , file=paste(disease, "/dz_expr.RData", sep=""))
 
