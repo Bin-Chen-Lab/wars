@@ -6,7 +6,7 @@
 
 #create a work folder
 #create data folder and code folder
-#download data from Chen lab server, and unzip to data folder
+#download data from Chen lab server (/home/ubuntu/chenlab_v2/chenlab_data/raw.zip), and unzip to data folder
 #clone code and unzip to the code folder
 
 #how to run code:
