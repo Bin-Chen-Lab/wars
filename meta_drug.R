@@ -1,27 +1,52 @@
 setwd("~/Documents/stanford/wars/cmap/data//")
-data_dir = "~/Documents/stanford/tumor_cell_line/pipeline/octad_desktop/results/"
-GSE17400 = read.csv(paste0(data_dir, "GSE17400", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE30589 = read.csv(paste0(data_dir, "GSE30589", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE45042 = read.csv(paste0(data_dir, "GSE45042", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE47960 = read.csv(paste0(data_dir, "GSE47960", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE22581 = read.csv(paste0(data_dir, "GSE22581", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE68820 = read.csv(paste0(data_dir, "GSE68820", "/sRGES_drugs.csv"), stringsAsFactors = F)
-GSE36016 = read.csv(paste0(data_dir, "GSE36016", "/sRGES_drugs.csv"), stringsAsFactors = F)
 
-all = data.frame( GSE17400 = GSE17400$sRGES, GSE30589 = GSE30589$sRGES, GSE45042 = GSE45042$sRGES, GSE47960 = GSE47960$sRGES,
-                 GSE22581 = GSE22581$sRGES, GSE68820 = GSE68820$sRGES, GSE36016 = GSE36016$sRGES)
-rownames(all) = GSE17400$pert_iname
-all = all[GSE17400$n > 1, ]
+meta_files = list.files(pattern =  "GSE")
 
-all_rank = all
-for( i in 1:ncol(all)){
-  all_rank[,i] = rank(all[,i])
+prediction = read.csv(paste0(getwd(), "/", "meta_GSE17400_DOHV_Calu-3_12_24", "/sRGES_drugs.csv"))
+prediction = prediction[order(prediction$name), ]
+
+scores = data.frame(name = prediction$name)
+meta_files_valid = NULL
+for (meta_file  in meta_files){
+  if (file.exists(paste0(getwd(), "/", meta_file, "/sRGES_drugs.csv"))) {
+    prediction = read.csv(paste0(getwd(), "/", meta_file, "/sRGES_drugs.csv"))
+    prediction = prediction[order(prediction$name), ]
+    scores = cbind(scores, prediction$sRGES)
+    meta_files_valid = c(meta_files_valid, meta_file)
+  }
+}
+rownames(scores) = scores$name
+scores = scores[, -1]
+colnames(scores) = meta_files_valid
+#remove n = 1 profiles
+scores = scores[prediction$n > 1, ]
+scores_rank = scores
+for (i in 1:ncol(scores)){
+  scores_rank[,i] = rank(scores[,i])
 }
 
-all_rank["deferiprone", ]
-drug_rank = apply(all_rank, 1, median)
-tail(sort(drug_rank))
-head(sort(drug_rank))
-drug_rank["lopinavir"]
-drug_rank["niclosamide"]
+scores_sars = scores[, grep("SARS", colnames(scores))]
+scores_sars_rank = scores_rank[, grep("SARS", colnames(scores_rank))]
+
+scores_sars["ritonavir",]
+scores_sars_rank["ritonavir",]
+
+scores_rank["ritonavir",]
+scores_rank["niclosamide",]
+
+scores_sars_rank[grep("vir", rownames(scores_sars_rank)), ]
+
+#choose comparisons where any positive hit is on the top 100 ritonavir/niclosamide/lopinavir
+scores_rank_pos = scores_rank[rownames(scores_rank) %in% c("ritonavir", "niclosamide", "lopinavir"), ]
+scores_rank_pos_min = apply(scores_rank_pos, 2, min)
+scores_rank_pos_selected = names(scores_rank_pos_min[scores_rank_pos_min < 100])
+scores_rank_pos_selected = scores_rank_pos_selected[!scores_rank_pos_selected %in% scores_rank_pos_selected[grep("MOCK", scores_rank_pos_selected)]]
+
+#among those selected comparisons, choose drugs that are better
+scores_rank_selected = scores_rank[, scores_rank_pos_selected]
+drug_rank_selected = apply(scores_rank_selected, 1, median)
+head(sort(drug_rank_selected), 10)
+
+scores_rank["dabrafenib",scores_rank_pos_selected]
+
 
