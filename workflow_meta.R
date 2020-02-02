@@ -20,7 +20,7 @@ setwd("~/Documents/stanford/wars/cmap/data")
 
 library("pheatmap")
 library("gplots")
-library("ggplots")
+library("ggplot2")
 library("RColorBrewer")
 library("plyr")
 library("stringr")
@@ -31,6 +31,7 @@ library("stringr")
 
 meta = read.csv("../code/meta.csv", stringsAsFactors = F)
 GSEs = unique(meta$GSE)
+#GSEs = c("GSE47960")
 for (GSE in GSEs){
   diseases = unique(meta$disease[meta$GSE == GSE])
   for (dz in diseases){
@@ -43,13 +44,15 @@ for (GSE in GSEs){
          case_time = times[i + 1]
          disease = paste("meta", GSE, dz, model, control_time, case_time, sep = "_")
          disease = str_replace_all(disease, " ", "_")
-         print(disease)
          dz_sig.file <- paste(disease, "/dz_signature_cmap.txt", sep="") #paste(GSE, "_dz_sig_",method_id,".txt",sep="")
          dz_sig_all.file <- paste(disease, "/dz_signature_all.txt", sep="") #paste(GSE, "_dz_sig_",method_id,".txt",sep="")
          
          if (!dir.exists(disease)) dir.create(disease)
-         if (exists(paste0(disease, "/cmap_drug_predictions.csv"))) next
-         if (disease %in% c("meta_GSE45042_EMC_Calu-3_3_7")) next #skip problematic disease
+         if (file.exists(paste0(disease, "/cmap_drug_predictions.csv"))) next
+         if (disease %in% c("meta_GSE45042_EMC_Calu-3_3_7", "meta_GSE45042_EMC_Calu-3_7_12", "meta_GSE17400_SARS_Calu-3_12_24",
+                            "meta_GSE17400_MOCK_Calu-3_12_24", "meta_GSE17400_MOCK_Calu-3_24_48")) next #skip problematic disease
+         
+         print(disease)
          
          case_reg <- meta$GSM[meta$GSE == GSE & meta$disease == dz & meta$model == model & meta$time == case_time]
          control_reg <- meta$GSM[meta$GSE == GSE & meta$disease == dz & meta$model == model & meta$time == control_time]
@@ -63,12 +66,13 @@ for (GSE in GSEs){
          #if method 3 does not give enough signature genes, try method 2, which is more sensitive
          dz_signature = read.csv(dz_sig.file)
          if (nrow(dz_signature) < 30){
-           method_id <- 2 #2: rankprod, 3: siggenes sam, 
-           source("../code/create_dz_signature_from_GEO.R")
+           #method_id <- 2 #2: rankprod, 3: siggenes sam, 
+           #source("../code/create_dz_signature_from_GEO.R")
+           next
          }
          
          #map gene to Homo sapiens
-         if (meta$organism != "Homo sapiens"){
+         if (meta$organism[meta$GSE == GSE][1] != "Homo sapiens"){
            gene_mapping = read.csv("raw/cmap/gene_info_hs.csv")[, c("GeneID", "Symbol")]
            
            dz_signature = read.csv(dz_sig_all.file, sep = "\t", stringsAsFactors = F)
@@ -83,7 +87,7 @@ for (GSE in GSEs){
          }
          
          dz_signature = read.csv(dz_sig.file)
-         if (nrow(dz_signature) < 30) next
+         if (sum(dz_signature$up_down == "up") < 3 | sum(dz_signature$up_down == "down") < 3) next
          #predict  drugs using connectivity map data
          cmd <- paste("Rscript ../code/predict_drugs_cmap.R", disease, "cmap", paste0(disease, "/dz_signature_cmap.txt", sep=""))
          system(cmd)
