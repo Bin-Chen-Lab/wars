@@ -15,7 +15,7 @@ score_file = '/Users/jingxing/Documents/CoV/WARS/data/consensus_rank/consensus_r
 
 drug_scores = pd.read_csv(score_file, index_col=0)
 enr_type = 'moa'
-score_type = 'Q75_Rank'
+score_type = 'Median_Rank'
 
 drug_scores = drug_scores.sort_values(by=score_type)
 drug_scores['RANK'] = range(1, drug_scores.shape[0] + 1)
@@ -34,10 +34,11 @@ for enr_set in enrich_sets:
     score_b = drug_scores.loc[~drug_scores.index.isin(A), score_type]
     rank_a = drug_scores.loc[A, 'RANK'].astype(str)
     s, p = ranksums(score_a, score_b)
+    p = 0.5 * p if s < 0 else 1 - 0.5 * p
     result.append([enr_set, p, '|'.join(rank_a)])
 result = pd.DataFrame(data=result, columns=[enr_type, 'P', 'Ranks'])
 result = result.sort_values(by='P')
 result['FDR'] = multipletests([1 if np.isnan(i) else i for i in result.P], \
                               alpha=0.25, method='fdr_bh')[1]
 result = result.loc[:, [enr_type, 'P', 'FDR', 'Ranks']]
-result.to_csv('../data/consensus_rank/enrichment_%s_Q75.csv'%enr_type, index=False)
+result.to_csv('../data/consensus_rank/enrichment_%s.csv'%enr_type, index=False)
