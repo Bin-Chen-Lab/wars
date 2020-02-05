@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
+
+outdir = '../data/combination/'
+
 # Summarize a few disease signatures and generate a consensus disease signature
 inpdir = '/Users/jingxing/Documents/CoV/WARS/data/comparisons/'
 dz_flds = pd.read_csv('/Users/jingxing/Documents/CoV/WARS/data/consensus_rank/comparisons_selected.csv').model.to_list()
@@ -24,19 +27,19 @@ gene_all = sorted(gene_all)
 dz_sig_dict = dict([(g, []) for g in gene_all])
 for fname in dz_sig_files:
     dz_sig = pd.read_csv(fname, index_col='Symbol')
+    dz_sig['value1'] = [abs(v) if dr == 'up' else -abs(v) for (v, dr) in zip(dz_sig.value, dz_sig.up_down)]
     for gene in dz_sig_dict:
-        foldchg = dz_sig.loc[gene, 'value'] if gene in dz_sig.index else 0.0
+        foldchg = dz_sig.loc[gene, 'value1'] if gene in dz_sig.index else 0.0
         dz_sig_dict[gene].append(foldchg)
 dz_sig_c = [dz_sig_dict[g] for g in gene_all]
 dz_sig_c = pd.DataFrame(data=dz_sig_c, index=gene_all, columns=dz_flds)
 dz_sig_c['Ave_CoV_Signature'] = dz_sig_c.mean(axis=1)
-    
+dz_sig_c.to_csv(outdir + 'Summary_signatures.csv')
 
 # Load PharmaocoDepMap
 pdm = json.load(open('../data/raw/PharmacoDepMap_all_d1t0_200117.json'))
 # Lung cell lines
 cell_lines = ['A549', 'HCC515', 'DV90', 'H1299', 'HCC15', 'NCIH596', 'NCIH2073', 'SKLU1']
-outdir = '../data/combination/'
 
 result = dict([(dz, {1: [], 2:[]}) for dz in dz_sig_c.columns])
 
@@ -91,17 +94,17 @@ for dz in dz_sig_c.columns:
     best = max(single_target_effects + double_targets_effects, key=lambda x:x[1])
     
     # Waterfall plot of the highest reversal score combination
-    FIG = plt.figure(figsize=(12,7), dpi=300)
+    FIG = plt.figure(figsize=(max(len(dz_sig)/8, 10),8), dpi=300)
     dz_gene_wt = sorted([(k, v) for k,v in dz_sig.items()], key=lambda x:x[1])
     X0 = [i[0] for i in dz_gene_wt]
     Y0 = [i[1] for i in dz_gene_wt]
-    plt.bar(x = X0, height=Y0, label=dz, color='grey')
+    plt.bar(x = X0, height=Y0, label='Disease: '+dz, color='grey')
     rev_gene_wt = sorted([(k, dz_sig[k]) for k in best[-1].split('|')])
     X1 = [i[0] for i in rev_gene_wt]
     Y1 = [i[1] for i in rev_gene_wt]
     plt.bar(x = X1, height=Y1, label=best[0]+' reversed genes', color='red')
-    plt.legend(fontsize=14)
-    plt.xticks(rotation=90, fontsize=10)
+    plt.legend(fontsize=18)
+    plt.xticks(rotation=90, fontsize=8)
     plt.ylabel('Log2 Fold Change (Disease vs Control)', fontsize=12)
     FIG.tight_layout()
     FIG.savefig(outdir + '%s_%s.pdf'%(dz, best[0]))
