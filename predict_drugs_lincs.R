@@ -59,7 +59,7 @@ padjusted <- 0.001 # the cutoff for "significant genes". Default = 0.001, so any
 
 # sRGES params:
 # Only mess with "max_gene_size", which is how many up-regulated genes and down-regulated genes are allowed. ("100" = 100up + 100down = 200 total)
-landmark = 1
+landmark = 0
 choose_fda_drugs = F
 max_gene_size = 100
 weight_cell_line = F
@@ -92,16 +92,20 @@ dz_signature = dz_signature[abs(dz_signature$log2FoldChange) > 1.2, ]
 dz_signature$Symbol = sapply(dz_signature$Symbol, function(x) unlist(strsplit(x, " "))[1])
 
 #lincs genes
-load(paste0(base.folder, "/raw/lincs_signatures_cmpd_landmark_symbol.RData"))
+if (landmark == 1) {
+  load(paste0(base.folder, "/raw/lincs_signatures_cmpd_landmark_symbol.RData"))
+} else {
+  load(paste0(base.folder, "/raw/lincs_signatures_cmpd_landmark_GSE92742.RData"))
+}
 dz_signature_used = dz_signature[dz_signature$Symbol %in% rownames(lincs_signatures), ]
 write.csv(dz_signature_used, paste0(outputFolder, "/dz_signature_lincs_used.csv"))
 
-#visualize mapped signature
-load(paste(disease, "/dz_expr.RData", sep=""))
-comparison_frame_subset <- dz_expr[rownames(dz_expr) %in% dz_signature_used$GeneID, ]
-pheatmap(t(scale(t(comparison_frame_subset))), col = my.cols, annotation = annotation,  annotation_colors = anno_colors,
-         show_colnames=F, legend=T, show_rownames=F, filename=paste(disease, "/dz_sig_validation_lincs.pdf", sep="")
-)
+# #visualize mapped signature
+# load(paste(disease, "/dz_expr.RData", sep=""))
+# comparison_frame_subset <- dz_expr[rownames(dz_expr) %in% dz_signature_used$GeneID, ]
+# pheatmap(t(scale(t(comparison_frame_subset))), col = my.cols, annotation = annotation,  annotation_colors = anno_colors,
+#          show_colnames=F, legend=T, show_rownames=F, filename=paste(disease, "/dz_sig_validation_lincs.pdf", sep="")
+# )
 
 ## ----sRGES-----------------------------------------------------------------------------------------------------------------------------------
 setwd(base.folder)
