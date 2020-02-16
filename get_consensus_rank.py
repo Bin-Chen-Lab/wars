@@ -11,6 +11,7 @@ import os
 from scipy.stats import ranksums, spearmanr
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 
 
@@ -84,26 +85,50 @@ for comp in pos_ctrl_scores.index:
     cor_p.append(p)
 pos_ctrl_ranks['SpearmanR_sRGES_EC50'] = cor_r
 pos_ctrl_ranks['P_SpearmanR'] = cor_p
+pos_ctrl_ranks = pos_ctrl_ranks.sort_values(by='SpearmanR_sRGES_EC50', ascending=False)
 pos_ctrl_ranks.to_csv(outdir+'comparisons_validation.csv', index=False)
 
 cmpr_sele = pos_ctrl_ranks.loc[(pos_ctrl_ranks['P_Enrichment'] < 0.05) & \
                                (pos_ctrl_ranks['P_SpearmanR'] < 0.05) & \
                                (pos_ctrl_ranks['SpearmanR_sRGES_EC50'] > 0.4)].index.to_list()
 pos_ctrl_ranks.loc[cmpr_sele].to_csv(outdir+'comparisons_selected.csv')
-# Plot the correlation between score and EC50
-FIG, axs = plt.subplots(len(cmpr_sele), 1, figsize=(5, len(cmpr_sele) * 4), dpi=300)
+
+# Plot the enrichment density and correlation score vs EC50
+FIG = plt.figure(figsize=(10, len(cmpr_sele) * 4), dpi=300)
+gs = gridspec.GridSpec(len(cmpr_sele) * 2, 2, \
+                       height_ratios=[2 if i%2==0 else 1 for i in range(len(cmpr_sele) * 2)])
 for i, comp in enumerate(cmpr_sele):
+    # Draw density of positive drugs
+    ax_dist = FIG.add_subplot(gs[i*2, 0])
+    p = pos_ctrl_ranks.loc[comp, 'P_Enrichment']
+    sns.distplot(pos_ctrl_ranks.loc[comp, pos_ctrls], hist=False, \
+                 kde_kws={'kernel': 'triw'}, ax=ax_dist, \
+                 label='P = %.2E'%p)
+    ax_dist.set_xlim(0, len(drug_lst))
+    ax_dist.set_axis_off()
+    ax_dist.set_title(comp)
+    # Draw rank positions of positive drugs
+    ax_bcd = FIG.add_subplot(gs[i*2 + 1, 0])
+    ax_bcd.eventplot(pos_ctrl_ranks.loc[comp, pos_ctrls])
+    ax_bcd.set_xlim(0, len(drug_lst))
+    ax_bcd.set_ylim(0.5, 1)
+    ax_bcd.set_xlabel('Positive Drugs Rank')
+    ax_bcd.get_yaxis().set_visible(False)
+    for spine in ["left", "top", "right"]: ax_bcd.spines[spine].set_visible(False)
+    # Draw correlation of srges and EC50
+    ax_cor = FIG.add_subplot(gs[i*2:(i+1)*2, 1])
     x = pos_ctrl_scores.loc[comp]
     y = pos_ctrl_ec50.loc[pos_ctrl_scores.columns, 'log10_EC50']
     corr = pos_ctrl_ranks.loc[comp, 'SpearmanR_sRGES_EC50']
     p = pos_ctrl_ranks.loc[comp, 'P_SpearmanR']
-    sns.regplot(x, y, label='Spearman R = %.2f\nP = %.4f'%(corr, p), ax=axs[i])
-    axs[i].set_xlabel('sRGES')
-    axs[i].set_ylabel('log10 EC50')
-    axs[i].set_title(comp)
-    axs[i].legend()
+    sns.regplot(x, y, label='Spearman R = %.2f\nP = %.4f'%(corr, p), ax=ax_cor)
+    ax_cor.set_xlabel('sRGES')
+    ax_cor.set_ylabel('log10 EC50')
+    ax_cor.set_title(comp)
+    ax_cor.legend()
 FIG.tight_layout()
-FIG.savefig(outdir + 'Plot_EC50_sRGES.pdf')
+FIG.savefig(outdir + 'Plot_Enrichment_EC50_sRGES.pdf')
+plt.close()
 
 
 # Generate consensus rank table containing all drugs
@@ -119,8 +144,6 @@ for drug in drug_lst:
     conss_rank.append([drug] + [rank_dict[comp][drug] for comp in cmpr_sele])
 conss_rank = pd.DataFrame(data=conss_rank, columns=['name'] + cmpr_sele)
 conss_rank['Median_Rank'] = conss_rank.median(axis=1)
-#conss_rank['Q25_Rank'] = conss_rank.loc[:, cmpr_sele].quantile(q=0.25, axis=1)
-#conss_rank['Q75_Rank'] = conss_rank.loc[:, cmpr_sele].quantile(q=0.75, axis=1)
 conss_rank.index = [name.lower() for name in conss_rank.name]
 
 # Map drug information to the consensus rank table
@@ -154,8 +177,6 @@ for drug in drug_lst:
     conss_rank_n.append([drug] + [rank_dict[comp][drug] for comp in cmpr_neg_ctrl])
 conss_rank_n = pd.DataFrame(data=conss_rank_n, columns=['name'] + cmpr_neg_ctrl)
 conss_rank_n['Median_Rank_MOCK'] = conss_rank_n.median(axis=1)
-#conss_rank_n['Q25_Rank_MOCK'] = conss_rank_n.loc[:, cmpr_neg_ctrl].quantile(q=0.25, axis=1)
-#conss_rank_n['Q75_Rank_MOCK'] = conss_rank_n.loc[:, cmpr_neg_ctrl].quantile(q=0.75, axis=1)
 conss_rank_n.index = [name.lower() for name in conss_rank_n.name]
 conss_rank_n = pd.concat([conss_rank_n, drug_info], axis=1).loc[conss_rank_n.index]
 conss_rank_n.to_csv(outdir + 'consensus_rank_sRGES_drugs_MOCK.csv', index=False)
@@ -181,13 +202,11 @@ for drug in drug_lst:
     conss_rank_n1.append([drug] + [rank_dict[comp][drug] for comp in cmpr_ctrl1])
 conss_rank_n1 = pd.DataFrame(data=conss_rank_n1, columns=['name'] + cmpr_ctrl1)
 conss_rank_n1['Median_Rank_'+DZ] = conss_rank_n1.median(axis=1)
-#conss_rank_n1['Q25_Rank_'+DZ] = conss_rank_n1.loc[:, cmpr_ctrl1].quantile(q=0.25, axis=1)
-#conss_rank_n1['Q75_Rank_'+DZ] = conss_rank_n1.loc[:, cmpr_ctrl1].quantile(q=0.75, axis=1)
 conss_rank_n1.index = [name.lower() for name in conss_rank_n1.name]
 conss_rank_n1 = pd.concat([conss_rank_n1, drug_info], axis=1).loc[conss_rank_n1.index]
 conss_rank_n1.to_csv(outdir + 'consensus_rank_sRGES_drugs_%s.csv'%DZ, index=False)
 
-# Combine activity table and toxicity table
+# Combine activity table and toxicity/selectivity table
 col_a = ['name', 'Median_Rank']
 col_b = ['Median_Rank_MOCK']
 col_c = ['Median_Rank_'+DZ] + drug_info.columns.to_list()
