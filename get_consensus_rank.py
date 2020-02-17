@@ -20,7 +20,7 @@ pos_ctrl_ec50['log10_EC50'] = np.log10(pos_ctrl_ec50.EC50 * 10**(-6))
 pos_ctrls = pos_ctrl_ec50.index.to_list()
 inpdir = '../data/all_comparisons/'
 drug_info_file = '../data/raw/repurposing_drugs_20180907.txt'
-outdir = '../data/consensus_rank_200213/'
+outdir = '../data/consensus_rank_200217/'
 if not os.path.exists(outdir): os.mkdir(outdir)
 encd = 'mac_roman'
 
@@ -28,7 +28,7 @@ encd = 'mac_roman'
 num_dz_g, pct_top, drug_lst = 50, 0.05, None
 rank_dict, score_dict = dict(), dict()
 for comp in os.listdir(inpdir):
-    if all([not comp.startswith(st) for st in ['all_virus_', 'GSE', 'meta_GSE']]): continue
+    if all([not comp.startswith(st) for st in ['all_virus_', 'GSE', 'meta_GSE', 'DE_gene_']]): continue
     drug_score_file = inpdir + comp + '/sRGES_drugs.csv'
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
@@ -48,6 +48,8 @@ for k in rank_dict:
     dzsig = pd.read_csv(dzsig_file, encoding=encd)
     pos_ctrl_ranks.append([k, dzsig.shape[0]] + [rank_dict[k][d] for d in pos_ctrls])
 pos_ctrl_ranks = pd.DataFrame(data=pos_ctrl_ranks, columns=['model', 'Num_Genes'] + pos_ctrls)
+pos_ctrl_ranks.index = pos_ctrl_ranks.model
+pos_ctrl_ranks = pos_ctrl_ranks.iloc[:, 1:]
 # sRGES of the positive drugs across all the comparisons
 pos_ctrl_scores = []
 pos_ctrls_1 = pos_ctrl_ec50.dropna().index.to_list()
@@ -58,15 +60,14 @@ pos_ctrl_scores.index = pos_ctrl_scores.model
 pos_ctrl_scores = pos_ctrl_scores.iloc[:, 1:]
 pos_ctrl_scores.to_csv(outdir + 'sRGES_positiveCtrls.csv')
 
-# Select the comparisons with enough dysregulated genes
-pos_ctrl_ranks = pos_ctrl_ranks.loc[pos_ctrl_ranks.Num_Genes >= num_dz_g]
-pos_ctrl_ranks.index = pos_ctrl_ranks.model
-pos_ctrl_scores = pos_ctrl_scores.loc[pos_ctrl_scores.index.isin(pos_ctrl_ranks.index)]
-
 # Select the comparisons can enrich positive control drugs
 tmp = pos_ctrl_ranks.loc[:, pos_ctrls]
 enrich_test = []
 for comp in pos_ctrl_ranks.index:
+    # Must include enough DE genes
+    if pos_ctrl_ranks.loc[comp, 'Num_Genes'] < num_dz_g:
+        enrich_test.append(1.0)
+        continue
     pos = tmp.loc[comp].to_list()
     back = [r for r in range(1, len(drug_lst) + 1) if r not in pos]
     s, p = ranksums(pos, back)
@@ -77,6 +78,11 @@ pos_ctrl_ranks['P_Enrichment'] = enrich_test
 # Calculate Spearman r of srges vs ec50 within each comparison
 cor_r, cor_p = [], []
 for comp in pos_ctrl_scores.index:
+    # Must include enough DE genes
+    if pos_ctrl_ranks.loc[comp, 'Num_Genes'] < num_dz_g:
+        cor_r.append(0.0)
+        cor_p.append(1.0)
+        continue
     scores = pos_ctrl_scores.loc[comp].to_list()
     ec50 = pos_ctrl_ec50.loc[pos_ctrl_scores.columns, 'log10_EC50']
     sr, p = spearmanr(scores, ec50)
@@ -86,7 +92,7 @@ for comp in pos_ctrl_scores.index:
 pos_ctrl_ranks['SpearmanR_sRGES_EC50'] = cor_r
 pos_ctrl_ranks['P_SpearmanR'] = cor_p
 pos_ctrl_ranks = pos_ctrl_ranks.sort_values(by='SpearmanR_sRGES_EC50', ascending=False)
-pos_ctrl_ranks.to_csv(outdir+'comparisons_validation.csv', index=False)
+pos_ctrl_ranks.to_csv(outdir+'comparisons_validation.csv')
 
 cmpr_sele = pos_ctrl_ranks.loc[(pos_ctrl_ranks['P_Enrichment'] < 0.05) & \
                                (pos_ctrl_ranks['P_SpearmanR'] < 0.05) & \
