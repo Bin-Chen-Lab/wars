@@ -12,6 +12,9 @@ from scipy.stats import ranksums, spearmanr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import seaborn as sns
 
 
@@ -100,6 +103,7 @@ cmpr_sele = pos_ctrl_ranks.loc[(pos_ctrl_ranks['P_Enrichment'] < 0.05) & \
 pos_ctrl_ranks.loc[cmpr_sele].to_csv(outdir+'comparisons_selected.csv')
 
 # Plot the enrichment density and correlation score vs EC50
+cmpr_sele = [cmpr_sele[0]] # Plot the best validated signature
 FIG = plt.figure(figsize=(10, len(cmpr_sele) * 4), dpi=300)
 gs = gridspec.GridSpec(len(cmpr_sele) * 2, 2, \
                        height_ratios=[2 if i%2==0 else 1 for i in range(len(cmpr_sele) * 2)])
@@ -133,7 +137,7 @@ for i, comp in enumerate(cmpr_sele):
     ax_cor.set_title(comp)
     ax_cor.legend()
 FIG.tight_layout()
-FIG.savefig(outdir + 'Plot_Enrichment_EC50_sRGES.pdf')
+FIG.savefig(outdir + 'Plot_Best_Enrichment_EC50_sRGES.pdf', transparent=True)
 plt.close()
 
 
