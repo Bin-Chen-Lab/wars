@@ -15,7 +15,9 @@ import matplotlib.gridspec as gridspec
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+matplotlib.rcParams["font.family"] = "Arial"
 import seaborn as sns
+import re
 
 
 pos_ctrl_ec50 = pd.read_csv('../data/raw/pos_ctrl_EC50.tsv', sep='\t', index_col=0)
@@ -23,7 +25,7 @@ pos_ctrl_ec50['log10_EC50'] = np.log10(pos_ctrl_ec50.EC50 * 10**(-6))
 pos_ctrls = pos_ctrl_ec50.index.to_list()
 inpdir = '../data/all_comparisons/'
 drug_info_file = '../data/raw/repurposing_drugs_20180907.txt'
-outdir = '../data/consensus_rank_200217/'
+outdir = '../data/consensus_rank/'
 if not os.path.exists(outdir): os.mkdir(outdir)
 encd = 'mac_roman'
 
@@ -36,7 +38,6 @@ for comp in os.listdir(inpdir):
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
     score_lst = score_lst.loc[score_lst.n > 1]
-    #score_lst.name = score_lst.name.str.lower()
     if not drug_lst: drug_lst = sorted(score_lst.name.to_list())
     score_lst.index = range(1, score_lst.shape[0] + 1)
     drug_scores = score_lst.loc[score_lst.name.isin(pos_ctrls), ['name', 'sRGES']]
@@ -96,48 +97,90 @@ pos_ctrl_ranks['SpearmanR_sRGES_EC50'] = cor_r
 pos_ctrl_ranks['P_SpearmanR'] = cor_p
 pos_ctrl_ranks = pos_ctrl_ranks.sort_values(by='SpearmanR_sRGES_EC50', ascending=False)
 pos_ctrl_ranks.to_csv(outdir+'comparisons_validation.csv')
-
+# Select validated comparisons
 cmpr_sele = pos_ctrl_ranks.loc[(pos_ctrl_ranks['P_Enrichment'] < 0.05) & \
                                (pos_ctrl_ranks['P_SpearmanR'] < 0.05) & \
                                (pos_ctrl_ranks['SpearmanR_sRGES_EC50'] > 0.4)].index.to_list()
 pos_ctrl_ranks.loc[cmpr_sele].to_csv(outdir+'comparisons_selected.csv')
 
 # Plot the enrichment density and correlation score vs EC50
-cmpr_sele = [cmpr_sele[0]] # Plot the best validated signature
-FIG = plt.figure(figsize=(10, len(cmpr_sele) * 4), dpi=300)
-gs = gridspec.GridSpec(len(cmpr_sele) * 2, 2, \
-                       height_ratios=[2 if i%2==0 else 1 for i in range(len(cmpr_sele) * 2)])
+hnum = len(cmpr_sele) + len(cmpr_sele) % 2
+FIG = plt.figure(figsize=(20, hnum * 2), dpi=300)
+gs = gridspec.GridSpec(hnum, 4, height_ratios=[2 if i%2==0 else 1 for i in range(hnum)])
 for i, comp in enumerate(cmpr_sele):
+    # Edit title: remove internal code and add 'h' after time points
+    title = comp[comp.index('GSE'):]
+    tps = re.findall('_[0-9][0-9]*', title)
+    for tp in tps: title = title.replace(tp, tp + 'h')
+    # Find which sub panel
+    if i%2 == 0: row, col = i, 0
+    else: row, col = i - 1, 2
     # Draw density of positive drugs
-    ax_dist = FIG.add_subplot(gs[i*2, 0])
+    ax_dist = FIG.add_subplot(gs[row, col])
     p = pos_ctrl_ranks.loc[comp, 'P_Enrichment']
     sns.distplot(pos_ctrl_ranks.loc[comp, pos_ctrls], hist=False, \
-                 kde_kws={'kernel': 'triw'}, ax=ax_dist, \
-                 label='P = %.2E'%p)
+                 kde_kws={'kernel': 'triw'}, ax=ax_dist, label='P = %.2E'%p)
+    ax_dist.legend(fontsize=16)
     ax_dist.set_xlim(0, len(drug_lst))
     ax_dist.set_axis_off()
-    ax_dist.set_title(comp)
+    ax_dist.set_title(title, fontsize=16)
     # Draw rank positions of positive drugs
-    ax_bcd = FIG.add_subplot(gs[i*2 + 1, 0])
+    ax_bcd = FIG.add_subplot(gs[row + 1, col])
     ax_bcd.eventplot(pos_ctrl_ranks.loc[comp, pos_ctrls])
     ax_bcd.set_xlim(0, len(drug_lst))
     ax_bcd.set_ylim(0.5, 1)
-    ax_bcd.set_xlabel('Positive Drugs Rank')
+    ax_bcd.set_xlabel('Positive Drugs Rank', fontsize=14)
     ax_bcd.get_yaxis().set_visible(False)
     for spine in ["left", "top", "right"]: ax_bcd.spines[spine].set_visible(False)
     # Draw correlation of srges and EC50
-    ax_cor = FIG.add_subplot(gs[i*2:(i+1)*2, 1])
+    ax_cor = FIG.add_subplot(gs[row:row + 2, col + 1])
     x = pos_ctrl_scores.loc[comp]
     y = pos_ctrl_ec50.loc[pos_ctrl_scores.columns, 'log10_EC50']
     corr = pos_ctrl_ranks.loc[comp, 'SpearmanR_sRGES_EC50']
     p = pos_ctrl_ranks.loc[comp, 'P_SpearmanR']
-    sns.regplot(x, y, label='Spearman R = %.2f\nP = %.4f'%(corr, p), ax=ax_cor)
-    ax_cor.set_xlabel('sRGES')
-    ax_cor.set_ylabel('log10 EC50')
-    ax_cor.set_title(comp)
-    ax_cor.legend()
+    sns.regplot(x, y, label='Spearman R = %.2f\nP = %.2E'%(corr, p), ax=ax_cor)
+    ax_cor.set_xlabel('sRGES', fontsize=14)
+    ax_cor.set_ylabel('log10 EC50', fontsize=14)
+    ax_cor.set_title(title, fontsize=16)
+    ax_cor.legend(fontsize=16)
 FIG.tight_layout()
-FIG.savefig(outdir + 'Plot_Best_Enrichment_EC50_sRGES.pdf', transparent=True)
+FIG.savefig(outdir + 'FigS5_Enrichment_EC50_sRGES.pdf', transparent=True)
+plt.close()
+
+# Plot the best signature result
+comp = cmpr_sele[0]
+title = comp[comp.index('GSE'):]
+tps = re.findall('_[0-9][0-9]*', title)
+for tp in tps: title = title.replace(tp, tp + 'h')
+FIG = plt.figure(figsize=(10, 4), dpi=300)
+gs = gridspec.GridSpec(2, 2, height_ratios=[2, 1])
+ax_dist = FIG.add_subplot(gs[0, 0])
+p = pos_ctrl_ranks.loc[comp, 'P_Enrichment']
+sns.distplot(pos_ctrl_ranks.loc[comp, pos_ctrls], hist=False, \
+             kde_kws={'kernel': 'triw'}, ax=ax_dist, label='P = %.2E'%p)
+ax_dist.legend(fontsize=16)
+ax_dist.set_xlim(0, len(drug_lst))
+ax_dist.set_axis_off()
+ax_dist.set_title(title, fontsize=16)
+ax_bcd = FIG.add_subplot(gs[1, 0])
+ax_bcd.eventplot(pos_ctrl_ranks.loc[comp, pos_ctrls])
+ax_bcd.set_xlim(0, len(drug_lst))
+ax_bcd.set_ylim(0.5, 1)
+ax_bcd.set_xlabel('Positive Drugs Rank', fontsize=14)
+ax_bcd.get_yaxis().set_visible(False)
+for spine in ["left", "top", "right"]: ax_bcd.spines[spine].set_visible(False)
+ax_cor = FIG.add_subplot(gs[0:2, 1])
+x = pos_ctrl_scores.loc[comp]
+y = pos_ctrl_ec50.loc[pos_ctrl_scores.columns, 'log10_EC50']
+corr = pos_ctrl_ranks.loc[comp, 'SpearmanR_sRGES_EC50']
+p = pos_ctrl_ranks.loc[comp, 'P_SpearmanR']
+sns.regplot(x, y, ax=ax_cor)
+ax_cor.text(-0.2, -6.4, 'Spearman R = %.2f\nP = %.2E'%(corr, p), fontsize=16)
+ax_cor.set_xlabel('sRGES', fontsize=14)
+ax_cor.set_ylabel('log10 EC50', fontsize=14)
+ax_cor.set_title(title, fontsize=16)
+FIG.tight_layout()
+FIG.savefig(outdir + 'Fig2A_Best_Enrichment_EC50_sRGES.pdf', transparent=True)
 plt.close()
 
 

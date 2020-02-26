@@ -8,16 +8,17 @@ Created on Wed Feb 19 09:30:38 2020
 
 import pandas as pd
 import numpy as np
-from scipy.stats import zscore
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+matplotlib.rcParams['font.family'] = 'Arial'
 
-inpdir = '/Users/jingxing/Documents/CoV/WARS/data/all_comparisons/'
-outdir = '/Users/jingxing/Documents/CoV/WARS/data/consensus_rank_200217/'
+
+inpdir = '../data/all_comparisons/'
+outdir = '../data/consensus_rank/'
 labelfile = outdir + 'comparisons_selected.csv'
 lincs_sig = pd.read_hdf('/Users/jingxing/Documents/Data_Sources/LINCS_profiles/lincs_signatures_cmpd_landmark_highQ.hdf5')
 meta = pd.read_csv('/Users/jingxing/Documents/Data_Sources/LINCS_profiles/signature_meta.csv', index_col='id')
@@ -27,7 +28,6 @@ tmp = pos_drug_ranks.iloc[:, 1:-3].T
 tmp['med'] = tmp.median(axis=1)
 pos_ctrls = tmp.sort_values(by='med').index.to_list()
 models = pos_drug_ranks.index.to_list()
-#pos_ctrls = pos_drug_ranks.iloc[:, 1:-3].columns.to_list()
 sele_drugs = ['bortezomib', 'puromycin', 'methotrexate', 'methylene-blue', 'tyloxapol', \
               'nisoldipine', 'nvp-bez235', 'fluvastatin', 'alvocidib', 'dasatinib', \
               'orteronel', 'bezafibrate', 'atovaquone']
@@ -58,14 +58,6 @@ sigmtx_cons = sigmtx.loc[(sigmtx.Q75 > 2) | (sigmtx.Q25 < -1)]
 sigmtx_cons['Infection'] = [a if a < 0 else b * 0.75 for (a,b) in \
                             zip(sigmtx_cons.Q25, sigmtx_cons.Q75)]
 
-'''
-def funs(score_lst):
-    x = np.quantile(score_lst, 0.25)
-    if x < 0: return x
-    x = np.quantile(score_lst, 0.75)
-    if x > 0: return x
-    return np.mean(score_lst)
-'''
 def funs(score_lst):
     x = np.quantile(score_lst, 0.25)
     y = np.quantile(score_lst, 0.75)
@@ -80,41 +72,7 @@ meta = meta.loc[meta.index.isin(lincs_sig.columns)]
 meta.pert_iname = meta.pert_iname.str.lower()
 gene_sele = sorted(sigmtx_cons.index)
 lincs_sig = lincs_sig.loc[gene_sele]
-# Plot positive control drugs
-sub_meta = meta.loc[(meta.pert_iname.isin(pos_ctrls)) & (meta.pert_dose == 10)]
-pos_ctrls = [d for d in pos_ctrls if d in sub_meta.pert_iname.values]
-pos_ctrl_profiles = []
-for drug in pos_ctrls:
-    prf = lincs_sig.loc[:, lincs_sig.columns.isin(sub_meta.loc[sub_meta.pert_iname == drug].index)]
-    if use_median:
-        m_prf = prf.median(axis=1)
-        pos_ctrl_profiles.append(m_prf.to_list())
-    else:
-        m_prf = [funs(t) for k,t in prf.iterrows()]
-        pos_ctrl_profiles.append(m_prf)
-pos_ctrl_profiles = np.array(pos_ctrl_profiles).T
-pos_ctrl_profiles = pd.DataFrame(data=pos_ctrl_profiles, columns=pos_ctrls, index=lincs_sig.index)
-dz_posctrl = pd.concat([sigmtx_cons['Infection'], pos_ctrl_profiles], axis=1)
-dz_posctrl = dz_posctrl.sort_values(by='Infection')
-dz_posctrl.index.name = 'Dysregulated Genes'
-FIG = plt.figure(figsize=(20, 20), dpi=300)
-gs = gridspec.GridSpec(1, 2, width_ratios=[1, 12])
-ax0 = FIG.add_subplot(gs[0, 0])
-sns.heatmap(dz_posctrl.iloc[:, [0]], cmap=colorp, cbar=False, ax=ax0)
-ax0.set_xticklabels(['Infection'], rotation=90, fontsize=16)
-ax0.set_yticklabels(dz_posctrl.index, fontsize=6)
-ax0.set_ylabel(dz_posctrl.index.name, fontsize=16)
-ax1 = FIG.add_subplot(gs[0, 1])
-sns.heatmap(dz_posctrl.iloc[:, 1:], cmap=colorp, cbar=False, ax=ax1)
-ax1.get_yaxis().set_visible(False)
-ax1.set_xticklabels(pos_ctrl_profiles.columns, rotation=90, fontsize=16)
-FIG.tight_layout()
-FIG.savefig(outdir + 'SigRev_positiveDrugs.pdf')
-plt.close()
 
-FIG = sns.clustermap(dz_posctrl, cmap=colorp, figsize=(15, 30), dendrogram_ratio=(0.1, 0.05))
-FIG.savefig(outdir + 'SigRevCluster_positiveDrugs.pdf')
-plt.close()
 
 # Plot selected drugs
 sub_meta = meta.loc[(meta.pert_iname.isin(sele_drugs)) & (meta.pert_dose == 10)]
@@ -138,25 +96,21 @@ FIG = plt.figure(figsize=(14, 20), dpi=300)
 gs = gridspec.GridSpec(1, 2, width_ratios=[1, 12])
 ax0 = FIG.add_subplot(gs[0, 0])
 sns.heatmap(dz_sele_drug.iloc[:, [0]], cmap=colorp, cbar=False, ax=ax0)
-ax0.set_xticklabels(['Infection'], rotation=45, fontsize=18)
+ax0.set_xticklabels(['Infection'], rotation=45, fontsize=24)
 ax0.set_yticklabels(dz_sele_drug.index, fontsize=6)
-ax0.set_ylabel(dz_sele_drug.index.name, fontsize=16)
+ax0.set_ylabel(dz_sele_drug.index.name, fontsize=24)
 ax1 = FIG.add_subplot(gs[0, 1])
 sns.heatmap(dz_sele_drug.iloc[:, 1:], cmap=colorp, cbar=False, ax=ax1)
 ax1.get_yaxis().set_visible(False)
-ax1.set_xticklabels(sele_drug_profiles.columns, rotation=45, fontsize=18)
+ax1.set_xticklabels(sele_drug_profiles.columns, rotation=45, fontsize=24)
 FIG.tight_layout()
-FIG.savefig(outdir + 'SigRev_SelectedDrugs.pdf', transparent=True)
+FIG.savefig(outdir + 'Fig2C_SigRev_SelectedDrugs.pdf', transparent=True)
 plt.close()
 
 FIG = sns.clustermap(dz_sele_drug, cmap=colorp, figsize=(10, 30), dendrogram_ratio=(0.1, 0.05))
 FIG.savefig(outdir + 'SigRevCluster_SelectedDrugs.pdf')
 plt.close()
 
-'''
-tmp = pd.concat([pos_ctrl_profiles, sele_drug_profiles], axis=1)
-tmp.to_csv(outdir + 'DrugProfiles_95genes.csv')
-'''
 
 
 
