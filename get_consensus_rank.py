@@ -25,7 +25,7 @@ pos_ctrl_ec50['log10_EC50'] = np.log10(pos_ctrl_ec50.EC50 * 10**(-6))
 pos_ctrls = pos_ctrl_ec50.index.to_list()
 inpdir = '../data/all_comparisons/'
 drug_info_file = '../data/raw/repurposing_drugs_20180907.txt'
-outdir = '../data/consensus_rank/'
+outdir = '../data/consensus_rank_200303/'
 if not os.path.exists(outdir): os.mkdir(outdir)
 encd = 'mac_roman'
 
@@ -38,6 +38,7 @@ for comp in os.listdir(inpdir):
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
     score_lst = score_lst.loc[score_lst.n > 1]
+    if score_lst.sRGES.iloc[0] > -0.25: continue
     if not drug_lst: drug_lst = sorted(score_lst.name.to_list())
     score_lst.index = range(1, score_lst.shape[0] + 1)
     drug_scores = score_lst.loc[score_lst.name.isin(pos_ctrls), ['name', 'sRGES']]
@@ -222,6 +223,7 @@ for comp in os.listdir(inpdir):
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
     score_lst = score_lst.loc[score_lst.n > 1]
+    if score_lst.sRGES.iloc[0] > -0.25: continue
     score_lst.index = range(1, score_lst.shape[0] + 1)
     rank_dict[comp] = dict(zip(score_lst.name, score_lst.index))
     cmpr_neg_ctrl.append(comp)
@@ -247,6 +249,7 @@ for comp in os.listdir(inpdir):
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
     score_lst = score_lst.loc[score_lst.n > 1]
+    if score_lst.sRGES.iloc[0] > -0.25: continue
     score_lst.index = range(1, score_lst.shape[0] + 1)
     rank_dict[comp] = dict(zip(score_lst.name, score_lst.index))
     cmpr_ctrl1.append(comp)
