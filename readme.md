@@ -3,7 +3,7 @@
 ## Abstract
 Repurposing existing drugs is a timely option to cope with COVID-19. We sought to target infection-induced genes in the host cells, hoping to mitigate disease progression and alleviate symptoms. Based on our previous experience that reversal of gene expression (namely **sRGES**) correlates to drug efficacy, we utilized **a systems-based approach that employs gene expression profiles of SARS-/MERS-CoV infected samples** (as COVID-19 samples not available at the time of writing) **and drug-induced gene expression profiles from cell lines to discover new thereapeutic candidates for COVID-19**. 430 samples from 12 studies of SARS-/MERS-CoV infection were collected from [GEO](https://www.ncbi.nlm.nih.gov/geo/), 215 comparisons across all the infection time duration were employed to create different infection signatures and predict drug candidates. Drugs effective to SARS or MERS served as positive control to select valid signatures that captured virus induced biology change in the host cells. Finally we computed the consensus score of drug predictions derived from all the valid infection signatures to generate the final prediction.
 
-![](Figure_1.pdf)
+![](Figure_1.png)
 
 ## Instructions
 
