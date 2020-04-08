@@ -35,12 +35,12 @@ A drug repurposing library with 1740 well investigated drugs was predicted the r
 ### Signature Validation & Selection
 Run *"get_consensus_rank.py"*.
 
-Valid signatures would show in *"comparisons_selected.csv"*. Metrics of all signatures in *"comparisons_validation_all-signatures.csv"*.
+Valid signatures would show in *"comparisons_selected.csv"*. Metrics of all signatures in *"comparisons_validation_all-signatures.csv"* (extended_data_2).
 
 Visualization of positive control drugs enrichment would show in 2 pdf files.
 
 ### Drug Consensus Score
-In *"consensus_rank_sRGES_drugs_CaseVSCtrl.csv"*, the lower "Median_Rank" of a drug, the better it reversed all valid signatures.
+In *"consensus_rank_sRGES_drugs_CaseVSCtrl.csv"* (extended_data_3), the lower "Median_Rank" of a drug, the better it reversed all valid signatures.
 
 ### Other Analysis
 * MoA Enrichment
