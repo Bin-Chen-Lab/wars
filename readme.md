@@ -11,7 +11,7 @@ Repurposing existing drugs is a timely option to cope with COVID-19. We sought t
 Create data folder and code folder. Download data from Chen lab server (/home/ubuntu/chenlab_v2/chenlab_data/raw.zip), and unzip to data folder. Clone code and unzip to the code folder.
 
 ### Enumerate All Comparisons & Create Disease Signatures
-Virus infection studies meta information were stored in "meta.csv", including GEO ID, virus type, organism, time point, description, etc. Each comparison would results in an infection signature (i.e. a list of differential expressed genes) and a drug repurposing prediction list (if the size of signature is large enough to make reliable prediction).
+Virus infection studies meta information were stored in *"meta.csv"*, including GEO ID, virus type, organism, time point, description, etc. Each comparison would results in an infection signature (i.e. a list of differential expressed genes) and a drug repurposing prediction list (if the size of signature is large enough to make reliable prediction).
 
 * Tips:
   + method_id = 3: by default we use SAM (3), but if we could not find enough signature genes, use rankProd (2)
