@@ -8,6 +8,11 @@ Repurposing existing drugs is a timely option to cope with COVID-19. We sought t
 ### Before Running
 Create data folder and code folder. Download data from Chen lab server (/home/ubuntu/chenlab_v2/chenlab_data/raw.zip), and unzip to data folder. Clone code and unzip to the code folder.
 
+### Enumerate All Comparisons & Create Disease Signatures
+Three ways of comparisons:
+1. Between virus and mock at the same time point
+
+
 
 
 #choose disease name (more specifically the comparison of name, I use GSE number + comparison method), here we use GSE17400_SARS_48_vs_12
