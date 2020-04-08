@@ -13,16 +13,18 @@ Create data folder and code folder. Download data from Chen lab server (/home/ub
 ### Enumerate All Comparisons & Create Disease Signatures
 Virus infection studies meta information were stored in "meta.csv", including GEO ID, virus type, organism, time point, description, etc. Each comparison would results in an infection signature (i.e. a list of differential expressed genes) and a drug repurposing prediction list (if the size of signature is large enough to make reliable prediction).
 
-*Tips:
-+method_id = 3: by default we use SAM (3), but if we could not find enough signature genes, use rankProd (2)
+* Tips:
++ method_id = 3: by default we use SAM (3), but if we could not find enough signature genes, use rankProd (2)
 
-*Three ways of comparisons:
+* Three ways of comparisons:
 1. Between virus and mock at the same time point
 
 "Workflow_meta_case_vs_CT_one_time.R"
+
 2. Between 2 time points within the virus/mock infection group
 
 "workflow_meta_time_all.R"
+
 3. Between 2 time points within the virus group, then extract same genes from mock group
 
 Also in "workflow_meta_time_all.R"
