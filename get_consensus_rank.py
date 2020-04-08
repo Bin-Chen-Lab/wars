@@ -9,6 +9,7 @@ Created on Mon Feb  3 14:52:21 2020
 import pandas as pd
 import os
 from scipy.stats import ranksums, spearmanr
+from statsmodels.stats.multitest import multipletests
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -25,15 +26,14 @@ pos_ctrl_ec50['log10_EC50'] = np.log10(pos_ctrl_ec50.EC50 * 10**(-6))
 pos_ctrls = pos_ctrl_ec50.index.to_list()
 inpdir = '../data/all_comparisons/'
 drug_info_file = '../data/raw/repurposing_drugs_20180907.txt'
-outdir = '../data/consensus_rank_200303/'
+outdir = '../data/consensus_rank/'
 if not os.path.exists(outdir): os.mkdir(outdir)
 encd = 'mac_roman'
 
 # Get the sRGES ranks and scores of the positive control drugs for all the infection comparison signatures
-num_dz_g, pct_top, drug_lst = 50, 0.05, None
+num_dz_g, num_comp, drug_lst = 50, 0, None
 rank_dict, score_dict = dict(), dict()
 for comp in os.listdir(inpdir):
-    if all([not comp.startswith(st) for st in ['all_virus_', 'GSE', 'meta_GSE', 'DE_gene_']]): continue
     drug_score_file = inpdir + comp + '/sRGES_drugs.csv'
     if not os.path.exists(drug_score_file): continue
     score_lst = pd.read_csv(drug_score_file, encoding=encd)
@@ -97,11 +97,21 @@ for comp in pos_ctrl_scores.index:
 pos_ctrl_ranks['SpearmanR_sRGES_EC50'] = cor_r
 pos_ctrl_ranks['P_SpearmanR'] = cor_p
 pos_ctrl_ranks = pos_ctrl_ranks.sort_values(by='SpearmanR_sRGES_EC50', ascending=False)
-pos_ctrl_ranks.to_csv(outdir+'comparisons_validation.csv')
+
+cov_posctrl_ranks = pos_ctrl_ranks.loc[((pos_ctrl_ranks.index.str.contains('SARS')) | \
+                                       (pos_ctrl_ranks.index.str.contains('MERS'))) & \
+                                       (~pos_ctrl_ranks.index.str.startswith('all_mock_'))]
+cov_posctrl_ranks['FDR_Enrichment'] = multipletests(cov_posctrl_ranks.P_Enrichment, \
+                                                    alpha=0.25, method='fdr_bh')[1]
+fdr = cov_posctrl_ranks.reindex(pos_ctrl_ranks.index).FDR_Enrichment
+pos_ctrl_ranks['FDR_Enrichment'] = fdr
+pos_ctrl_ranks.to_csv(outdir+'comparisons_validation_all-signatures.csv')
+
 # Select validated comparisons
-cmpr_sele = pos_ctrl_ranks.loc[(pos_ctrl_ranks['P_Enrichment'] < 0.05) & \
-                               (pos_ctrl_ranks['P_SpearmanR'] < 0.05) & \
-                               (pos_ctrl_ranks['SpearmanR_sRGES_EC50'] > 0.4)].index.to_list()
+cmpr_sele = cov_posctrl_ranks.loc[(cov_posctrl_ranks['P_Enrichment'] < 0.05) & \
+                                  (cov_posctrl_ranks['P_SpearmanR'] < 0.05) & \
+                                  (cov_posctrl_ranks['FDR_Enrichment'] < 0.25) & \
+                                  (cov_posctrl_ranks['SpearmanR_sRGES_EC50'] > 0.4)].index.to_list()
 pos_ctrl_ranks.loc[cmpr_sele].to_csv(outdir+'comparisons_selected.csv')
 
 # Plot the enrichment density and correlation score vs EC50
@@ -145,7 +155,7 @@ for i, comp in enumerate(cmpr_sele):
     ax_cor.set_title(title, fontsize=16)
     ax_cor.legend(fontsize=16)
 FIG.tight_layout()
-FIG.savefig(outdir + 'FigS5_Enrichment_EC50_sRGES.pdf', transparent=True)
+FIG.savefig(outdir + 'FigS4_Enrichment_EC50_sRGES.pdf', transparent=True)
 plt.close()
 
 # Plot the best signature result
@@ -200,6 +210,7 @@ conss_rank = pd.DataFrame(data=conss_rank, columns=['name'] + cmpr_sele)
 conss_rank['Median_Rank'] = conss_rank.median(axis=1)
 conss_rank.index = [name.lower() for name in conss_rank.name]
 
+
 # Map drug information to the consensus rank table
 drug_info = [l.strip().split('\t') for l in open(drug_info_file, encoding=encd) if not l.startswith('!')]
 drug_info = pd.DataFrame(data=drug_info[1:], columns=drug_info[0])
@@ -236,38 +247,12 @@ conss_rank_n.index = [name.lower() for name in conss_rank_n.name]
 conss_rank_n = pd.concat([conss_rank_n, drug_info], axis=1).loc[conss_rank_n.index]
 conss_rank_n.to_csv(outdir + 'consensus_rank_sRGES_drugs_MOCK.csv', index=False)
 
-
-# Generate consensus rank table of drug sRGES on other control signatures H1N1
-rank_dict, cmpr_ctrl1, DZ = dict(), [], 'H1N1'
-for comp in os.listdir(inpdir):
-    if DZ not in comp.upper(): continue
-    dzsig_file = inpdir + comp +'/dz_signature_lincs_used.csv'
-    if not os.path.exists(dzsig_file): continue
-    dzsig = pd.read_csv(dzsig_file, encoding=encd)
-    if dzsig.shape[0] < num_dz_g: continue
-    drug_score_file = inpdir + comp + '/sRGES_drugs.csv'
-    if not os.path.exists(drug_score_file): continue
-    score_lst = pd.read_csv(drug_score_file, encoding=encd)
-    score_lst = score_lst.loc[score_lst.n > 1]
-    if score_lst.sRGES.iloc[0] > -0.25: continue
-    score_lst.index = range(1, score_lst.shape[0] + 1)
-    rank_dict[comp] = dict(zip(score_lst.name, score_lst.index))
-    cmpr_ctrl1.append(comp)
-conss_rank_n1 = []
-for drug in drug_lst:
-    conss_rank_n1.append([drug] + [rank_dict[comp][drug] for comp in cmpr_ctrl1])
-conss_rank_n1 = pd.DataFrame(data=conss_rank_n1, columns=['name'] + cmpr_ctrl1)
-conss_rank_n1['Median_Rank_'+DZ] = conss_rank_n1.median(axis=1)
-conss_rank_n1.index = [name.lower() for name in conss_rank_n1.name]
-conss_rank_n1 = pd.concat([conss_rank_n1, drug_info], axis=1).loc[conss_rank_n1.index]
-conss_rank_n1.to_csv(outdir + 'consensus_rank_sRGES_drugs_%s.csv'%DZ, index=False)
-
 # Combine activity table and toxicity/selectivity table
 col_a = ['name', 'Median_Rank']
-col_b = ['Median_Rank_MOCK']
-col_c = ['Median_Rank_'+DZ] + drug_info.columns.to_list()
-com = pd.concat([conss_rank.loc[:, col_a], conss_rank_n.loc[:, col_b], conss_rank_n1.loc[:, col_c]], axis=1)
+col_b = ['Median_Rank_MOCK'] + drug_info.columns.to_list()
+com = pd.concat([conss_rank.loc[:, col_a], conss_rank_n.loc[:, col_b]], axis=1)
 com.to_csv(outdir + 'consensus_rank_sRGES_drugs_CaseVSCtrl.csv', index=False)
+
 
 
 
