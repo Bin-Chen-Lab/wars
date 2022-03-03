@@ -1,7 +1,7 @@
 # Reversal of Infected Host Gene Expression Identifies Repurposed Drug Candidates for COVID-19
 
 ## Abstract
-Repurposing existing drugs is a timely option to cope with COVID-19. We sought to target infection-induced genes in the host cells, hoping to mitigate disease progression and alleviate symptoms. Based on our previous experience that reversal of gene expression (namely **sRGES**) correlates to drug efficacy, we utilized **a systems-based approach that employs gene expression profiles of SARS-/MERS-CoV infected samples** (as COVID-19 samples not available at the time of writing) **and drug-induced gene expression profiles from cell lines to discover new thereapeutic candidates for COVID-19**. 430 samples from 12 studies of SARS-/MERS-CoV infection were collected from [GEO](https://www.ncbi.nlm.nih.gov/geo/), 215 comparisons across all the infection time duration were employed to create different infection signatures and predict drug candidates. Drugs effective to SARS or MERS served as positive control to select valid signatures that captured virus induced biology change in the host cells. Finally we computed the consensus score of drug predictions derived from all the valid infection signatures to generate the final prediction.
+Repurposing existing drugs is a timely option to cope with COVID-19. We sought to target infection-induced genes in the host cells, hoping to mitigate disease progression and alleviate symptoms. Based on our previous experience that reversal of gene expression (namely **sRGES**) correlates to drug efficacy, we utilized **a systems-based approach that employs gene expression profiles of SARS-/MERS-CoV infected samples** (as COVID-19 samples not available at the time of writing) **and drug-induced gene expression profiles from cell lines to discover new thereapeutic candidates for COVID-19**. 430 samples from 12 studies of SARS-/MERS-CoV infection were collected from [GEO](https://www.ncbi.nlm.nih.gov/geo/), 215 comparisons across all the infection time duration were employed to create different infection signatures and predict drug candidates. Drugs effective to SARS or MERS served as positive control to select valid signatures that captured virus induced biology change in the host cells. Finally we computed the consensus score of drug predictions derived from all the valid infection signatures to generate the final prediction. Later in 2021, we collected 1700 RNA-seq samples of SARS-CoV-2 infection, and created more infection signatures. We also evaluated the published COVID-19 signatures' performance in drug discovery and found it critical to select pathological relevant signatures.
 
 ![](framework.png)
 
@@ -29,6 +29,8 @@ Three ways of comparisons:
 
   + Also in *"workflow_meta_time_all.R"*
 
+The code to generate raw signatures from SARS-CoV-2 data: *"compute_geneExprChange_SARS2_public.R"*
+
 ### Drug sRGES Prediction
 A drug repurposing library with 1740 well investigated drugs was predicted the reversal of each infection signature after you ran the 2 workflow R script mentioned in the previous section, if the signature genes could be mapped to > 50 LINCS landmark genes. See the drug prediction results in "sRGES_drugs.csv" of each disease signature folder.
 
@@ -43,6 +45,9 @@ Visualization of positive control drugs enrichment would show in 2 pdf files.
 In *"consensus_rank_sRGES_drugs_CaseVSCtrl.csv"* (extended_data_4), the lower "Median_Rank" of a drug, the better it reversed all valid signatures.
 
 ### Other Analysis
+* Evaluate published COVID-19 signatures
+*"diverse_pub_cov_sigs.py"*
+
 * MoA Enrichment
   + *"enrichment_consensus_rank.py"* gives enrichment of MoA based on drug consensus rank results.
   + *"plot_enrichment_moa.py"* visualizes the enrichment analysis.
